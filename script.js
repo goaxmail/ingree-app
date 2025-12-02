@@ -1,15 +1,14 @@
 document.addEventListener("DOMContentLoaded", () => {
-  let scanIngredients = [
+  const defaultScanIngredients = [
     { id: "tomato", name: "Tomaten", emoji: "🍅", quantity: "4", freshness: "ok" },
     { id: "lettuce", name: "Grüner Salat", emoji: "🥬", quantity: "1 Kopf", freshness: "frisch" },
     { id: "carrot", name: "Karotten", emoji: "🥕", quantity: "2", freshness: "trocken" },
     { id: "pepper", name: "Grüne Paprika", emoji: "🫑", quantity: "2", freshness: "ok" }
   ];
+  let scanIngredients = [...defaultScanIngredients];
 
-  
-// URL des Vision-Backends (lokal). Für Produktion später anpassen.
-const SCAN_API_URL = "http://localhost:4000/api/scan";
-const ingredientEmojiMap = {
+
+  const ingredientEmojiMap = {
     "tomaten": "🍅",
     "tomate": "🍅",
     "grüner salat": "🥬",
@@ -965,95 +964,7 @@ function setActiveRecipesTab(tab) {
     scanPhoto.src = url;
   }
 
-  
-async function startRealScan(file) {
-  if (!file) return;
-
-  if (!btnStartScan || !cameraPlaceholder) {
-    // Kein spezieller Scan-Header vorhanden – rendere direkt
-    try {
-      await performScanRequest(file);
-    } catch (err) {
-      console.error("Scan fehlgeschlagen, Fallback auf Demo:", err);
-      startFakeScanFlow();
-    }
-    return;
-  }
-
-  const originalText = btnStartScan.textContent;
-  btnStartScan.disabled = true;
-  btnStartScan.textContent = "🔍 Scan läuft…";
-  cameraPlaceholder.classList.add("scanning");
-
-  try {
-    await performScanRequest(file);
-  } catch (err) {
-    console.error("Scan fehlgeschlagen, Fallback auf Demo:", err);
-    startFakeScanFlow();
-    return;
-  } finally {
-    cameraPlaceholder.classList.remove("scanning");
-    btnStartScan.disabled = false;
-    btnStartScan.textContent = originalText;
-  }
-
-  renderIngredients();
-  if (getIsDev()) renderAiJson();
-  setActiveTab("scan");
-  showScreen("scan");
-}
-
-async function performScanRequest(file) {
-  try {
-    const formData = new FormData();
-    formData.append("image", file);
-    formData.append("locale", "de-DE");
-    formData.append("maxIngredients", "12");
-
-    const response = await fetch(SCAN_API_URL, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error("Scan-API Antwort war nicht OK: " + response.status);
-    }
-
-    const data = await response.json();
-    const zutaten = Array.isArray(data.zutaten) ? data.zutaten : [];
-
-    if (zutaten.length === 0) {
-      console.warn("Scan-API hat keine Zutaten zurückgegeben:", data);
-      return;
-    }
-
-    scanIngredients = zutaten.map((z, index) => {
-      const name = (z.name || "").trim() || "Zutat";
-      const lower = name.toLowerCase();
-      const emoji = ingredientEmojiMap[lower] || "🧺";
-      const mengeText = (z.menge || "").toString().trim();
-      const einheitText = (z.einheit || "").toString().trim();
-      const quantity = [mengeText, einheitText].filter(Boolean).join(" ").trim() || mengeText || "1";
-
-      let freshness = "ok";
-      const f = (z.frische || "").toLowerCase();
-      if (f.includes("frisch")) freshness = "frisch";
-      else if (f.includes("trocken") || f.includes("alt")) freshness = "trocken";
-
-      return {
-        id: z.id || ("zutat_" + index),
-        name,
-        emoji,
-        quantity,
-        freshness,
-      };
-    });
-  } catch (err) {
-    throw err;
-  }
-}
-
-function startFakeScanFlow() {
+  function startFakeScanFlow() {
     if (!cameraPlaceholder) {
       // Fallback: direkt zum Scan-Screen
       renderIngredients();
@@ -1081,7 +992,110 @@ function startFakeScanFlow() {
     }, 2600);
   }
 
-  if (btnStartScan) {
+  
+
+  async function startVisionScanFlow(file) {
+    // Animation wie im Demo-Scan
+    if (!cameraPlaceholder || !btnStartScan) {
+      // Kein Platzhalter vorhanden – wir springen direkt zum Ergebnis
+      try {
+        const ingredientsFromApi = await runVisionScan(file);
+        if (Array.isArray(ingredientsFromApi) && ingredientsFromApi.length > 0) {
+          scanIngredients = ingredientsFromApi;
+        } else {
+          scanIngredients = [...defaultScanIngredients];
+        }
+      } catch (err) {
+        console.error("Vision-Scan fehlgeschlagen:", err);
+        scanIngredients = [...defaultScanIngredients];
+      }
+      renderIngredients();
+      if (getIsDev()) renderAiJson();
+      setActiveTab("scan");
+      showScreen("scan");
+      return;
+    }
+
+    const originalText = btnStartScan.textContent;
+    btnStartScan.disabled = true;
+    btnStartScan.textContent = "🔍 Scan läuft…";
+
+    cameraPlaceholder.classList.add("scanning");
+
+    try {
+      const ingredientsFromApi = await runVisionScan(file);
+      if (Array.isArray(ingredientsFromApi) && ingredientsFromApi.length > 0) {
+        scanIngredients = ingredientsFromApi;
+      } else {
+        scanIngredients = [...defaultScanIngredients];
+      }
+    } catch (err) {
+      console.error("Vision-Scan fehlgeschlagen:", err);
+      scanIngredients = [...defaultScanIngredients];
+    }
+
+    cameraPlaceholder.classList.remove("scanning");
+    btnStartScan.disabled = false;
+    btnStartScan.textContent = originalText;
+
+    renderIngredients();
+    if (getIsDev()) renderAiJson();
+    setActiveTab("scan");
+    showScreen("scan");
+  }
+
+  async function runVisionScan(file) {
+    if (!file) {
+      return [...defaultScanIngredients];
+    }
+
+    // Datei als Base64 lesen
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        // Entferne Präfix wie "data:image/jpeg;base64,"
+        const commaIndex = result.indexOf(",");
+        resolve(commaIndex !== -1 ? result.slice(commaIndex + 1) : result);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    try {
+      const response = await fetch("/api/scan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ imageBase64: base64 })
+      });
+
+      if (!response.ok) {
+        console.error("Vision-API-Fehler:", response.status, await response.text());
+        return [...defaultScanIngredients];
+      }
+
+      const data = await response.json();
+
+      if (data && Array.isArray(data.ingredients)) {
+        return data.ingredients.map((ing, index) => ({
+          id: ing.id || ing.name?.toLowerCase().replace(/[^a-z0-9]+/g, "_") || `ing_${index}`,
+          name: ing.name || "Unbekannte Zutat",
+          emoji: ing.emoji || "🧊",
+          quantity: ing.quantity || "",
+          freshness: ing.freshness || "ok"
+        }));
+      }
+
+      return [...defaultScanIngredients];
+    } catch (error) {
+      console.error("Fehler beim Aufruf von /api/scan:", error);
+      return [...defaultScanIngredients];
+    }
+  }
+
+if (btnStartScan) {
     btnStartScan.addEventListener("click", () => {
       // Kamera-/Galerie-Auswahl öffnen
       if (cameraInput) {
@@ -1094,17 +1108,18 @@ function startFakeScanFlow() {
   }
 
   if (cameraInput) {
-    cameraInput.addEventListener("change", () => {
+    cameraInput.addEventListener("change", async () => {
       if (!cameraInput.files || cameraInput.files.length === 0) return;
       const file = cameraInput.files[0];
 
       // Bild im Scan-Screen setzen
       updateScanPhoto(file);
 
-      // Scan-Flow starten – echte Vision-Analyse, Fallback auf Demo
-      startRealScan(file);
+      // Vision-Scan starten (echte API) – mit Fallback auf Demo-Daten
+      await startVisionScanFlow(file);
     });
   }
+
 
 if (btnShowRecipes) {
     btnShowRecipes.addEventListener("click", () => {
