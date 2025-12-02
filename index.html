@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>INGREE – Deine KI-Küchenhilfe</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="assets/ingree_logo.png" type="image/png" />
+
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#020617" />
+</head>
+<body>
+  <div class="app">
+    <header class="global-header">
+      <div class="global-logo-wrap">
+        <img src="assets/ingree_logo.png" alt="INGREE Logo" class="global-logo" />
+      </div>
+    </header>
+    <!-- Start / Intro -->
+    <section id="screen-onboarding" class="screen active">
+      <header class="header"></header>
+
+      <main class="main main-centered">
+        <div class="card hero-card static onboarding-hero">
+          <p class="hero-label">WILLKOMMEN</p>
+          <h2>So funktioniert INGREE</h2>
+          <p class="meta">
+            Von deinem Kühlschrank zu passenden Rezeptideen – in drei einfachen Schritten.
+          </p>
+          <div class="onboarding-steps">
+            <div class="onboarding-step">
+              <div class="step-icon">📷</div>
+              <div class="step-content">
+                <div class="step-label">Zutaten scannen</div>
+                <div class="step-text">Halte deinen Kühlschrank oder einzelne Produkte vor die Kamera.</div>
+              </div>
+            </div>
+            <div class="onboarding-step">
+              <div class="step-icon">🧊</div>
+              <div class="step-content">
+                <div class="step-label">Zutaten prüfen</div>
+                <div class="step-text">Wir erkennen, was du hast. Du kannst Zutaten noch ergänzen oder ändern.</div>
+              </div>
+            </div>
+            <div class="onboarding-step">
+              <div class="step-icon">🍽️</div>
+              <div class="step-content">
+                <div class="step-label">Rezepte &amp; Einkaufsliste</div>
+                <div class="step-text">Du bekommst passende Rezeptideen &amp; kannst fehlende Zutaten direkt auf die Einkaufsliste setzen.</div>
+              </div>
+            </div>
+          </div>
+          <p class="hint-text">
+            Kein Konto nötig. Deine Daten bleiben lokal auf deinem Gerät.
+          </p>
+          <button id="btn-onboarding-next" class="primary-btn big-btn">
+            Los geht&apos;s
+          </button>
+        </div>
+      </main>
+    </section>
+
+    <section id="screen-start" class="screen">
+      <header class="header header-bar">
+        <button class="back-btn" data-target="screen-onboarding">←</button>
+        <div class="header-title">
+          <h2>Dein Scan</h2>
+          <p>Fotografiere deine Zutaten – wir finden die passenden Rezepte.</p>
+        </div>
+      </header>
+
+      <div class="camera-view-placeholder">
+        <div class="card static camera-intro-card">
+          <div class="camera-intro-icon">📷</div>
+          <div class="camera-intro-text">
+            <h3 class="camera-intro-title">Bereit für deinen ersten Scan?</h3>
+            <p class="meta">
+              Lege deine Zutaten gut sichtbar hin – zum Beispiel auf der Arbeitsfläche – und halte dein Handy darüber.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <main class="main main-centered">
+        <div class="card hero-card static">
+          <p class="hero-label">Los geht’s</p>
+          <p class="hero-sub">
+            Tippe auf <strong>„Scan starten“</strong> und fotografiere 4–8 Zutaten, die du zu Hause hast.
+          </p>
+          <button id="btn-start-scan" class="primary-btn big-btn">
+            Scan starten
+          </button>
+          <p class="hint-text">Je klarer die Zutaten zu sehen sind, desto besser werden deine Rezeptvorschläge.</p>
+        </div>
+      </main>
+    </section>
+
+
+    <!-- Scan Screen -->
+    <section id="screen-scan" class="screen">
+<header class="header header-bar">
+  <button class="back-btn back-btn-soft" data-target="screen-start">
+    ←
+  </button>
+  <div class="header-title">
+    <h2>Dein Scan</h2>
+    <p class="meta">
+      Wir haben diese Zutaten auf deinem Foto erkannt.
+    </p>
+  </div>
+</header>
+      <input id="camera-input" type="file" accept="image/*;capture=camera"  style="display:none" />
+
+      <main class="main">
+        <div class="card camera-card static">
+          <div class="camera-header-row">
+            <span class="camera-label">Kamera-Vorschau</span>
+          </div>
+          <div class="camera-frame">
+            <img src="assets/fridge-demo.jpg" alt="Zutaten auf einem Foto" class="camera-image" id="scan-photo" />
+            <div class="highlight highlight-tomate"></div>
+            <div class="highlight highlight-salat"></div>
+            <div class="highlight highlight-karotte"></div>
+            <div class="highlight highlight-paprika"></div>
+          </div>
+        </div>
+
+        <div class="card static">
+          <div class="card-header-row">
+            <h3>Gefundene Zutaten</h3>
+            <span class="pill pill-soft">Letzter Scan</span>
+          </div>
+          <ul id="ingredient-list" class="ingredient-list"></ul>
+          <p class="info-line warning" id="freshness-hint"></p>
+
+          <div class="card-inline-help">
+            <p class="inline-title">Fehlt eine Zutat?</p>
+            <p class="meta small-meta">
+              Ergänze sie einfach manuell oder starte einen neuen Scan.
+            </p>
+            <div class="inline-actions">
+              <button id="btn-add-ingredient" class="secondary-btn small-btn">
+                ➕ Zutat hinzufügen
+              </button>
+              <button id="btn-rescan" class="secondary-btn small-btn">🔁 Nochmal scannen</button>
+            </div>
+<div id="add-ingredient-panel" class="add-ingredient-panel">
+              <p class="meta small-meta">
+                Schreibe hier weitere Vorrats-Zutaten dazu.
+              </p>
+              <input
+                id="add-ingredient-input"
+                class="text-input"
+                placeholder="z. B. Zwiebeln, Nudeln, Reis …"
+              />
+              <div class="chip-row">
+                <button type="button" class="chip-btn">🧄 Knoblauch</button>
+                <button type="button" class="chip-btn">🧅 Zwiebeln</button>
+                <button type="button" class="chip-btn">🥔 Kartoffeln</button>
+                <button type="button" class="chip-btn">🍝 Nudeln</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="ai-card" class="card ai-card static">
+          <div class="card-header-row">
+            <h3>KI-Ergebnis (Demo)</h3>
+            <span class="pill pill-soft">Scan-Daten</span>
+          </div>
+          <p class="meta">
+            So ähnlich könnte eine technische Auswertung deines Scans aussehen: Zutaten & Rezepte als strukturierte Daten.
+          </p>
+          <pre id="ai-json" class="ai-json"></pre>
+        </div>
+
+        <button id="btn-show-recipes" class="primary-btn full-width">
+          🍽️ Rezepte aus Scan anzeigen
+        </button>
+      </main>
+    </section>
+
+    <!-- Rezepte Screen -->
+    <section id="screen-recipes" class="screen">
+      <header class="header header-bar">
+        <button class="back-btn" data-target="screen-scan">←</button>
+        <div class="header-title">
+          <h2>Rezepte</h2>
+          <p id="recipes-subtitle">Aus deinen Zutaten und Vorschlägen</p>
+        </div>
+      </header>
+
+            <main class="main">
+        <div class="recipes-tabs-row">
+          <button type="button" class="recipes-tab-btn active" data-recipes-tab="scan">Aus Scan</button>
+          <button type="button" class="recipes-tab-btn" data-recipes-tab="beliebt">Beliebt</button>
+          <button type="button" class="recipes-tab-btn" data-recipes-tab="favs">Favoriten</button>
+        </div>
+        <!-- Aus letztem Scan -->
+        <div class="card static recipes-section" data-recipes-section="scan">
+          <div class="card-header-row">
+            <h3>Rezepte aus deinem letzten Scan</h3>
+            <span class="pill pill-soft">Letzter Scan</span>
+          </div>
+          <p class="meta small-meta" id="recipes-scan-hint">
+            Diese Vorschläge basieren auf deinen aktuell erkannten Zutaten.
+          </p>
+          <div id="recipes-last-scan" class="recipes-list"></div>
+          <p id="recipes-last-scan-empty" class="meta small-meta">
+            Noch kein Scan durchgeführt. Starte einen Scan, um passende Rezepte zu sehen.
+          </p>
+        </div>
+
+        <!-- Beliebte schnelle Rezepte -->
+        <div class="card static recipes-section" data-recipes-section="beliebt">
+          <div class="card-header-row">
+            <h3>Beliebte schnelle Rezepte</h3>
+            <span class="pill pill-soft">Beliebt</span>
+          </div>
+          <p class="meta small-meta">
+            Inspiration für jeden Tag – unabhängig von deinem Scan.
+          </p>
+          <div class="chip-row recipes-filter-row">
+            <button type="button" class="chip-btn recipes-filter-chip active" data-filter="all">
+              Alle
+            </button>
+            <button type="button" class="chip-btn recipes-filter-chip" data-filter="quick">
+              ⏱ bis 10 Min
+            </button>
+            <button type="button" class="chip-btn recipes-filter-chip" data-filter="filling">
+              🍝 Sättigend
+            </button>
+            <button type="button" class="chip-btn recipes-filter-chip" data-filter="family">
+              🧒 Familienfreundlich
+            </button>
+            <button type="button" class="chip-btn recipes-filter-chip" data-filter="cheap">
+              🪙 Günstig
+            </button>
+            <button type="button" class="chip-btn recipes-filter-chip" data-filter="healthy">
+              🥦 Leicht & frisch
+            </button>
+          </div>
+          <div id="recipes-global-list" class="recipes-list"></div>
+        </div>
+
+        <!-- Deine Favoriten -->
+        <div class="card static recipes-section" data-recipes-section="favs">
+          <div class="card-header-row">
+            <h3>Deine Favoriten</h3>
+            <span class="pill pill-soft">Übersicht</span>
+          </div>
+          <div id="recipes-fav-list" class="recipes-list"></div>
+          <p id="recipes-fav-empty" class="meta small-meta">
+            Hier erscheinen Rezepte, die du mit ⭐ markiert hast.
+          </p>
+          <button id="btn-open-favorites-full" class="secondary-btn full-width small-btn">
+            Mehr anzeigen
+          </button>
+        </div>
+
+        <!-- Plus-Vorschau -->
+        <div class="card premium-card static">
+          <div class="premium-header">
+            <h3>INGREE Plus Vorschau</h3>
+            <span class="pill pill-soft">Bald</span>
+          </div>
+          <ul class="plus-list">
+            <li>📆 Wöchentlicher Essensplan aus deinen Scans</li>
+            <li>🧊 Frische-Check mit Erinnerungen</li>
+            <li>🥗 Rezepte nach Ernährungszielen (Low-Carb, High-Protein, Familie)</li>
+          </ul>
+          <button class="secondary-btn full-width">
+            Plus-Features ansehen (Demo)
+          </button>
+        </div>
+      </main>
+    </section>
+
+    <!-- Rezept-Detail -->
+    <section id="screen-recipe-detail" class="screen">
+      <header class="header header-bar">
+        <button class="back-btn" data-target="screen-recipes">←</button>
+        <div class="header-title">
+          <h2 id="detail-title">Rezept</h2>
+          <p id="detail-subtitle">Details & Schritte</p>
+        </div>
+      </header>
+
+      <main class="main">
+        <div class="card static">
+          <div class="card-header-row">
+            <h3 id="detail-name">Rezeptname</h3>
+            <span id="detail-time" class="pill">0 Min</span>
+          </div>
+          <p id="detail-teaser" class="meta">
+            Kurzbeschreibung des Rezepts.
+          </p>
+        </div>
+
+        <div class="card static">
+          <div class="card-header-row">
+            <h3>Zutaten aus deinem Scan</h3>
+          </div>
+          <ul id="detail-ingredients" class="ingredient-list"></ul>
+        </div>
+
+        <div class="card static">
+          <div class="card-header-row">
+            <h3>Schritte</h3>
+          </div>
+          <ol id="detail-steps" class="steps steps-ordered"></ol>
+        </div>
+
+        <div class="card static">
+          <div class="card-header-row">
+            <h3>Aktionen</h3>
+          </div>
+          <div class="detail-actions">
+            <button id="btn-fav" class="secondary-btn small-btn">☆ Zu Favoriten</button>
+            <button id="btn-add-shopping" class="secondary-btn small-btn">
+              🛒 Zur Einkaufsliste
+            </button>
+          </div>
+          <p class="hint-text">
+            In der echten App würdest du das Rezept speichern oder fehlende Zutaten direkt auf die Einkaufsliste setzen.
+          </p>
+        </div>
+      </main>
+    </section>
+
+    <!-- Favoriten Screen -->
+    <section id="screen-favorites" class="screen">
+      <header class="header header-bar">
+        <div class="header-title">
+          <h2>Favoriten</h2>
+          <p>Deine gespeicherten Rezepte</p>
+        </div>
+      </header>
+
+      <main class="main">
+        <div class="card static">
+          <div class="card-header-row">
+            <h3>Gespeicherte Rezepte</h3>
+          </div>
+          <ul id="favorites-main-list" class="profile-list recipes-list"></ul>
+          <p id="favorites-main-empty" class="meta">
+            Du hast noch keine Favoriten gespeichert. Öffne ein Rezept und tippe auf „Zu Favoriten“.
+          </p>
+        </div>
+      </main>
+    </section>
+
+    <!-- Einkauf Screen -->
+    <section id="screen-shopping" class="screen">
+      <header class="header header-bar">
+        <div class="header-title">
+          <h2>Einkaufsliste</h2>
+          <p>Was du für deine nächsten Gerichte brauchst</p>
+        </div>
+      </header>
+
+      
+      <main class="main">
+        <div class="shopping-tabs-row">
+          <button type="button" class="shopping-tab-btn active" data-shopping-tab="recipes">Aus Scan &amp; Rezepten</button>
+          <button type="button" class="shopping-tab-btn" data-shopping-tab="manual">Meine Liste</button>
+        </div>
+
+        <div class="shopping-section" data-shopping-section="recipes">
+          <div class="card static">
+            <div class="card-header-row">
+              <h3>Aus Scan &amp; Rezepten</h3>
+            </div>
+            <ul id="shopping-from-recipes" class="shopping-list"></ul>
+            <p id="shopping-empty-hint" class="meta">
+              Noch keine Zutaten aus Rezepten hinzugefügt. Wähle ein Rezept und tippe auf „Zur Einkaufsliste“.
+            </p>
+            <div class="inline-actions list-actions-row">
+              <button id="btn-clear-shopping-recipes" class="secondary-btn small-btn full-width">
+                Liste aus Rezepten leeren
+              </button>
+              <button id="btn-remove-checked-recipes" class="secondary-btn small-btn full-width">
+                Abgehakte entfernen
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="shopping-section" data-shopping-section="manual" style="display: none">
+          <div class="card static">
+            <div class="card-header-row">
+              <h3>Meine Liste</h3>
+            </div>
+            <p class="meta small-meta">
+              Ergänze eigene Punkte für deinen Einkauf – z. B. Haushalt, Snacks oder Angebote.
+            </p>
+            <div class="shopping-input-row">
+              <input id="shopping-manual-name" type="text" class="text-input" placeholder="z. B. Milch, Brot, Wasser …" />
+            </div>
+            <div id="shopping-suggestions" class="shopping-suggestions"></div>
+            <p class="meta small-meta" id="shopping-suggestions-hint">
+              Tipp: Du kannst jede beliebige Zutat eintragen – auch wenn sie hier nicht vorgeschlagen wird.
+            </p>
+            <div class="shopping-input-row">
+              <input id="shopping-manual-qty" type="text" class="text-input" placeholder="Menge (optional)" />
+            </div>
+            <div class="shopping-input-row">
+              <button id="btn-shopping-manual-add" class="primary-btn full-width">
+                ➕ Hinzufügen
+              </button>
+            </div>
+            <ul id="shopping-manual-list" class="shopping-list"></ul>
+            <p id="shopping-manual-empty" class="meta">
+              Deine eigene Liste ist noch leer. Füge oben Punkte hinzu.
+            </p>
+            <div class="inline-actions list-actions-row">
+              <button id="btn-clear-shopping-manual" class="secondary-btn small-btn full-width">
+                Eigene Liste leeren
+              </button>
+              <button id="btn-remove-checked-manual" class="secondary-btn small-btn full-width">
+                Abgehakte entfernen
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="shopping-ad-card" class="card ad-card static">
+          <p class="ad-label">Anzeige</p>
+          <h3>Lieferservice für deine Liste</h3>
+          <p class="meta">
+            Bestelle alle Zutaten aus deiner Einkaufsliste direkt zu dir nach Hause.
+          </p>
+          <p class="meta small-meta">
+            Mit INGREE Plus blenden wir diese Werbung für dich aus.
+          </p>
+          <button class="secondary-btn full-width ad-btn">
+            Partner-Angebot ansehen
+          </button>
+        </div>
+      </main>
+
+    </section>
+
+    <!-- Profil Screen -->
+    <section id="screen-profile" class="screen">
+      <header class="header header-bar">
+        <div class="header-title">
+          <h2>Profil & Einstellungen</h2>
+          <p>Dein INGREE-Konto</p>
+        </div>
+      </header>
+
+      <main class="main">
+        <div class="card static">
+          <h3>Dein Konto</h3>
+          <ul class="profile-list">
+            <li><span>👤 Nutzername</span><span>INGREE Demo</span></li>
+            <li><span>📧 E-Mail</span><span>demo@scanchef.app</span></li>
+            <li><span>🌍 Sprache</span><span>Deutsch</span></li>
+          </ul>
+        </div>
+
+        <div class="card static">
+          <h3>App-Einstellungen</h3>
+          <ul class="profile-list">
+            <li><span>🎨 Theme</span><span>Dark (Standard)</span></li>
+            <li><span>🔔 Erinnerungen</span><span>Aus</span></li>
+            <li><span>🥗 Ernährungsziele</span><span>Keine gesetzt</span></li>
+          </ul>
+        </div>
+
+        <div class="card static">
+          <h3>INGREE Plus Status</h3>
+          <p class="meta">
+            Hier kannst du in der Demo zwischen Free und Plus wechseln, um zu sehen,
+            wie sich die Werbung verhält.
+          </p>
+          <div class="profile-toggle-row">
+            <span>Werbung anzeigen</span>
+            <button id="toggle-premium" class="secondary-btn small-btn">
+              Modus: Free (mit Werbung)
+            </button>
+          </div>
+        </div>
+
+        <div class="card static">
+          <h3>Entwickler-Modus</h3>
+          <p class="meta">
+            Schaltet zusätzliche Debug-Infos wie das KI-Ergebnis-Panel im Scan-Screen ein.
+          </p>
+          <div class="profile-toggle-row">
+            <span>Dev-Panel anzeigen</span>
+            <button id="toggle-dev" class="secondary-btn small-btn">
+              Dev-Modus: Aus
+            </button>
+          </div>
+          <p class="hint-text">
+            Diese Ansicht ist nur für Entwicklung & Tests gedacht – normale Nutzer sehen sie später nicht.
+          </p>
+        </div>
+
+        <div id="profile-ad-card" class="card ad-card static">
+          <p class="ad-label">Anzeige</p>
+          <h3>INGREE Partner-Vorteile</h3>
+          <p class="meta">
+            Exklusive Rabatte auf Kochboxen und nachhaltige Lebensmittelanbieter.
+          </p>
+          <p class="meta small-meta">
+            In INGREE Plus siehst du diese Partner-Anzeigen nicht mehr.
+          </p>
+          <button class="secondary-btn full-width ad-btn">
+            Partner entdecken
+          </button>
+        </div>
+      </main>
+    </section>
+
+
+    <!-- KI-Ladeoverlay -->
+    <div id="ai-loading-overlay" class="ai-loading-overlay">
+      <div class="ai-loading-card">
+        <div class="ai-loading-spinner"></div>
+        <p class="ai-loading-title">Rezepte werden von der KI erstellt …</p>
+        <p class="ai-loading-sub">Wir kombinieren deine Zutaten mit passenden Ideen.</p>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab="scan">
+        <span>📷</span>
+        <small>Scan</small>
+      </button>
+      <button class="nav-btn" data-tab="recipes">
+        <span>🍽️</span>
+        <small>Rezepte</small>
+      </button>
+      <button class="nav-btn" data-tab="favorites">
+        <span>⭐</span>
+        <small>Favoriten</small>
+      </button>
+      <button class="nav-btn" data-tab="shopping">
+        <span>🛒</span>
+        <small>Einkaufsliste</small>
+      </button>
+      <button class="nav-btn" data-tab="profile">
+        <span>👤</span>
+        <small>Profil</small>
+      </button>
+    </nav>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
