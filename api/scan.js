@@ -2,8 +2,6 @@
 // Vercel Serverless Function: nimmt ein Base64-Bild entgegen und liefert erkannte Zutaten zurück.
 // WICHTIG: In Vercel muss die Environment Variable OPENAI_API_KEY gesetzt sein.
 
-const fetch = global.fetch || require("node-fetch");
-
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
     res.statusCode = 405;
@@ -58,16 +56,16 @@ module.exports = async (req, res) => {
             role: "user",
             content: [
               {
-                type: "input_text",
+                type: "text",
                 text:
                   "Du bist eine Küchenhilfe. Analysiere das Bild und erkenne alle gut sichtbaren Lebensmittel und Zutaten. " +
                   "Antworte NUR als JSON-Objekt mit einem Feld 'ingredients', das ein Array von Objekten enthält. " +
-                  "Jedes Objekt soll diese Felder haben: id (kurzer string, z. B. 'tomato'), name (deutsch), emoji (passendes Lebensmittel-Emoji), " +
+                  "Jedes Objekt soll diese Felder haben: id (kurzer string, z. B. 'banana'), name (deutsch), emoji (passendes Lebensmittel-Emoji), " +
                   "quantity (grob geschätzt, z. B. '3-4 Stück', '1 Kopf', '1 Packung') und freshness ('frisch', 'ok' oder 'trocken'). " +
                   "Beispiel: { \"ingredients\": [ { \"id\": \"tomato\", \"name\": \"Tomaten\", \"emoji\": \"🍅\", \"quantity\": \"3-4\", \"freshness\": \"ok\" } ] }"
               },
               {
-                type: "input_image",
+                type: "image_url",
                 image_url: {
                   url: `data:image/jpeg;base64,${imageBase64}`
                 }
