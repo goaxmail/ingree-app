@@ -71,44 +71,9 @@ document.addEventListener("DOMContentLoaded", () => {
     frisch: "✔ Deine Zutaten sind sehr frisch."
   };
 
-  const scanRecipes = [
-    {
-      id: "r1",
-      title: "Tomaten-Paprika-Pfanne",
-      minutes: 12,
-      teaser: "Schnelle Pfanne für Brot, Reis oder Nudeln.",
-      uses: ["tomato", "carrot", "pepper"],
-      steps: [
-        "Paprika in Streifen, Tomaten grob schneiden.",
-        "Karotten fein hobeln und alles anbraten.",
-        "Mit Salz, Pfeffer und Kräutern abschmecken."
-      ]
-    },
-    {
-      id: "r2",
-      title: "Tomaten-Karotten-Salat",
-      minutes: 8,
-      teaser: "Leichter, frischer Teller – ideal als Beilage.",
-      uses: ["tomato", "carrot", "lettuce", "pepper"],
-      steps: [
-        "Tomaten würfeln, Karotten raspeln.",
-        "Paprika klein schneiden, Salat zupfen.",
-        "Mit Öl, Zitronensaft, Salz & Pfeffer anmachen."
-      ]
-    },
-    {
-      id: "r3",
-      title: "Veggie-Bowl aus dem Fach",
-      minutes: 10,
-      teaser: "Alles in eine Schale – fertig ist die Bowl.",
-      uses: ["lettuce", "tomato", "carrot", "pepper"],
-      steps: [
-        "Salat als Basis in die Schale geben.",
-        "Tomaten, Paprika & Karotten darauf verteilen.",
-        "Mit Dressing deiner Wahl servieren."
-      ]
-    }
-  ];
+  let scanRecipes = [];
+
+
 
   const globalRecipes = [
     {
@@ -550,7 +515,63 @@ function buildRecipeCard(recipe) {
     return card;
   }
 
-  function renderScanRecipesSection() {
+  
+
+  async function updateRecipesFromScan() {
+    if (!Array.isArray(scanIngredients) || scanIngredients.length === 0) {
+      // Nichts gescannt – dann lassen wir die letzte Liste einfach stehen
+      return;
+    }
+
+    try {
+      const payload = {
+        ingredients: scanIngredients,
+        extraIngredients: Array.isArray(extraIngredients) ? extraIngredients : []
+      };
+
+      const response = await fetch("/api/recipes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        console.error("Rezepte-API-Fehler:", response.status, await response.text());
+        return;
+      }
+
+      const data = await response.json();
+      if (!data || !Array.isArray(data.recipes) || data.recipes.length === 0) {
+        console.warn("Keine KI-Rezepte erhalten – behalte aktuelle Liste.");
+        return;
+      }
+
+      // Liste mit KI-Rezepten ersetzen
+      scanRecipes = data.recipes.map((r, index) => ({
+        id: r.id || `scan_${index}`,
+        title: r.title || "Idee aus deinen Zutaten",
+        minutes: typeof r.minutes === "number" ? r.minutes : null,
+        teaser: r.teaser || "",
+        uses: Array.isArray(r.uses) ? r.uses : [],
+        steps: Array.isArray(r.steps) ? r.steps : []
+      }));
+
+      // UI aktualisieren
+      renderScanRecipesSection();
+      if (typeof renderRecipesFavoritesSection === "function") {
+        renderRecipesFavoritesSection();
+      }
+      if (typeof renderFavoritesMain === "function") {
+        renderFavoritesMain();
+      }
+    } catch (error) {
+      console.error("Fehler beim Aktualisieren der Scan-Rezepte:", error);
+    }
+  }
+
+function renderScanRecipesSection() {
     if (!recipesLastScanEl || !recipesLastScanEmptyEl) return;
     recipesLastScanEl.innerHTML = "";
 
@@ -935,11 +956,39 @@ function setActiveRecipesTab(tab) {
     addIngredientSubmit.addEventListener("click", () => {
       const val = addIngredientInput.value.trim();
       if (!val) {
-        alert("Demo: Bitte gib eine zusätzliche Zutat ein (z. B. Zwiebeln, Nudeln, Reis).");
+        alert("Bitte gib mindestens eine zusätzliche Zutat ein (z. B. Zwiebeln, Nudeln, Reis).");
         return;
       }
-      alert('Demo: "' + val + '" würde als zusätzliche Vorrats-Zutat gespeichert und in die Rezepte einfließen.');
+
+      const names = val.split(",").map((p) => p.trim()).filter(Boolean);
+
+      names.forEach((name) => {
+        if (!name) return;
+
+        // In Extra-Liste für KI/Rezepte
+        if (!extraIngredients.includes(name)) {
+          extraIngredients.push(name);
+        }
+
+        // Auch in die Scan-Zutaten aufnehmen, wenn noch nicht vorhanden
+        const existing = scanIngredients.find((i) => i.name.toLowerCase() === name.toLowerCase());
+        if (!existing) {
+          const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+          scanIngredients.push({
+            id,
+            name,
+            emoji: ingredientEmojiMap[name.toLowerCase()] || "🧊",
+            quantity: "",
+            freshness: "ok"
+          });
+        }
+      });
+
       addIngredientInput.value = "";
+      renderIngredients();
+      if (typeof updateRecipesFromScan === "function") {
+        updateRecipesFromScan();
+      }
     });
   }
 
@@ -1010,6 +1059,9 @@ function setActiveRecipesTab(tab) {
         scanIngredients = [...defaultScanIngredients];
       }
       renderIngredients();
+      if (typeof updateRecipesFromScan === "function") {
+        updateRecipesFromScan();
+      }
       if (getIsDev()) renderAiJson();
       setActiveTab("scan");
       showScreen("scan");
@@ -1115,7 +1167,7 @@ if (btnStartScan) {
       // Bild im Scan-Screen setzen
       updateScanPhoto(file);
 
-      // Vision-Scan starten (echte API) – mit Fallback auf Demo-Daten
+      // Vision-Scan starten (echte API) – mit Fallback auf Standarddaten
       await startVisionScanFlow(file);
     });
   }
